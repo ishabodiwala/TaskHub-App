@@ -38,7 +38,7 @@ class CategoryViewModel @Inject constructor(private val categoryRepository: Cate
         }
     }
 
-    fun getCategoryById(categoryId: Int): Flow<Category?> {
+    fun getCategoryById(categoryId: Int): Flow<Category> {
         return categoryRepository.getCategoryById(categoryId)
     }
 }

@@ -8,20 +8,20 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 @Entity(
-    tableName = "tasks", foreignKeys = [ForeignKey(
+    tableName = "tasks",
+    foreignKeys = [ForeignKey(
         entity = Category::class,
         parentColumns = ["catId"],
         childColumns = ["categoryId"],
         onDelete = ForeignKey.CASCADE
-    )
-    ]
+    )]
 )
 data class Task(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
     val title: String,
     val description: String,
     val categoryId: Int,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val reminderTime: Long? = null
 ) : Parcelable
-

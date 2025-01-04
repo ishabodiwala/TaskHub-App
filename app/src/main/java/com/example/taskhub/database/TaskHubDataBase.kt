@@ -10,19 +10,18 @@ import com.example.taskhub.model.Category
 import com.example.taskhub.model.Task
 
 @Database(entities = [Task::class, Category::class], version = 1)
-abstract class ToDoDataBase : RoomDatabase() {
+abstract class TaskHubDataBase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun categoryDao(): CategoryDao
 
-
     companion object {
         @Volatile
-        private var INSTANCE: ToDoDataBase? = null
-        fun getDatabase(context: Context): ToDoDataBase {
+        private var INSTANCE: TaskHubDataBase? = null
+        fun getDatabase(context: Context): TaskHubDataBase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    ToDoDataBase::class.java,
+                    TaskHubDataBase::class.java,
                     "taskHub_database"
                 )
                     .fallbackToDestructiveMigration()

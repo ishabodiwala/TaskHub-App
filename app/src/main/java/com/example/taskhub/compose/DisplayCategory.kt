@@ -1,4 +1,4 @@
-package com.example.taskhub
+package com.example.taskhub.compose
 
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -54,17 +54,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.taskhub.R
 import com.example.taskhub.model.Category
 import com.example.taskhub.viewModel.CategoryViewModel
 import com.example.taskhub.viewModel.TaskViewModel
 
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun DisplayCategory(navController: NavHostController) {
     val categoryViewModel: CategoryViewModel = hiltViewModel()
     val taskViewModel: TaskViewModel = hiltViewModel()
+
     val categories by categoryViewModel.allCategories.collectAsState(initial = emptyList())
     val totalTasks by taskViewModel.totalTaskCount.collectAsState(initial = 0)
-
 
     val dialogStatus = remember { mutableStateOf(false) }
     val addedCategory = remember { mutableStateOf("") }

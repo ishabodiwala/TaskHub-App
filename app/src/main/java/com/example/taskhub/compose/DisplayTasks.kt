@@ -1,4 +1,4 @@
-package com.example.taskhub
+package com.example.taskhub.compose
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextDecoration
+import com.example.taskhub.R
 
 @Composable
 fun DisplayTasks(navController: NavHostController, categoryId: Int) {
@@ -97,7 +98,6 @@ fun DisplayTasks(navController: NavHostController, categoryId: Int) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Tasks Summary
             TasksSummary(tasks)
 
             if (tasks.isEmpty()) {
@@ -230,7 +230,6 @@ fun TaskCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Checkbox and Title
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically

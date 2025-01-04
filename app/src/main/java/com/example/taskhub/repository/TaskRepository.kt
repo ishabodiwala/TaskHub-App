@@ -6,8 +6,9 @@ import kotlinx.coroutines.flow.Flow
 
 class TaskRepository(private val taskDao: TaskDao) {
 
-    suspend fun insertTask(task: Task){
-        taskDao.insertTask(task)
+    suspend fun insertTask(task: Task): Task {
+        val newId = taskDao.insertTask(task).toInt()
+        return task.copy(id = newId)
     }
 
     suspend fun deleteTask(task: Task){

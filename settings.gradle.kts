@@ -13,6 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ToDoListApp"
+rootProject.name = "TaskHubApp"
 include(":app")
  

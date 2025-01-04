@@ -1,5 +1,9 @@
-package com.example.taskhub
+package com.example.taskhub.compose
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,19 +19,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,10 +38,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -51,14 +49,27 @@ import com.example.taskhub.viewModel.CategoryViewModel
 import com.example.taskhub.viewModel.TaskViewModel
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.core.content.ContextCompat
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import android.Manifest
+import com.example.taskhub.R
 
 @Composable
-fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
+fun NewTask(
+    navController: NavHostController,
+    categoryId: Int,
+    taskId: Int?
+) {
     val categoryViewModel: CategoryViewModel = hiltViewModel()
     val taskViewModel: TaskViewModel = hiltViewModel()
 
@@ -70,16 +81,29 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
     val dropDownMenuStatus = remember { mutableStateOf(false) }
     var boxWidth by remember { mutableIntStateOf(0) }
 
-
     val title = remember { mutableStateOf("") }
     val description = remember { mutableStateOf("") }
-    var isError by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    var selectedDateTime by remember { mutableStateOf<Long?>(null) }
+
+    var isTitleError by remember { mutableStateOf(false) }
+    var titleErrorMessage by remember { mutableStateOf("") }
+
+    val calendar = Calendar.getInstance()
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+
+    var isReminderError by remember { mutableStateOf(false) }
+    var reminderErrorMessage by remember { mutableStateOf("") }
+
 
     LaunchedEffect(existingTask, category) {
         existingTask?.let { task ->
             title.value = task.title
             description.value = task.description
+            selectedDateTime = task.reminderTime
         }
         category?.let {
             selectedCategory.value = it
@@ -102,7 +126,6 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header Image
             Image(
                 painter = painterResource(R.drawable.new_task_illustration),
                 contentDescription = "Task Header Image",
@@ -112,20 +135,11 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                 contentScale = ContentScale.Fit
             )
 
-            // Content Container
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = if (taskId == null || taskId == -1) "Create New Task" else "Update Task",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
 
                 // Category Selector
                 Text(
@@ -188,8 +202,9 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
+                //Title Input
                 Text(
                     text = "Title",
                     style = MaterialTheme.typography.labelLarge,
@@ -201,9 +216,9 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                     value = title.value,
                     onValueChange = {
                         title.value = it
-                        if (isError) {
-                            isError = false
-                            errorMessage = ""
+                        if (isTitleError) {
+                            isTitleError = false
+                            titleErrorMessage = ""
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -215,11 +230,11 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                         errorBorderColor = MaterialTheme.colorScheme.error,
                         errorContainerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
                     ),
-                    isError = isError,
+                    isError = isTitleError,
                     supportingText = {
-                        if (isError) {
+                        if (isTitleError) {
                             Text(
-                                text = errorMessage,
+                                text = titleErrorMessage,
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
@@ -227,8 +242,7 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                     singleLine = true
                 )
 
-
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Description Input
                 Text(
@@ -252,36 +266,182 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Function to check if we have notification permission
+                fun checkNotificationPermission(): Boolean {
+                    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                    } else {
+                        true
+                    }
+                }
+
+                // Reminder Section
+                Text(
+                    text = "Reminder",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (isReminderError)
+                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                            else
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { showDatePicker = true }
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (selectedDateTime != null) {
+                                SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+                                    .format(Date(selectedDateTime!!))
+                            } else "Set Reminder",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Set reminder"
+                        )
+                    }
+                }
+
+                if (isReminderError) {
+                    Text(
+                        text = reminderErrorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
+
+                if (showDatePicker) {
+                    val datePickerDialog = DatePickerDialog(
+                        context,
+                        { _, year, month, dayOfMonth ->
+                            showDatePicker = false
+                            showTimePicker = true
+                            calendar.set(Calendar.YEAR, year)
+                            calendar.set(Calendar.MONTH, month)
+                            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                        },
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH)
+                    ).apply {
+                        // Disable past dates
+                        datePicker.minDate = System.currentTimeMillis()
+                    }
+
+                    LaunchedEffect(Unit) {
+                        datePickerDialog.show()
+                    }
+                }
+
+                // Add the Time Picker
+
+                if (showTimePicker) {
+                    val currentTime = Calendar.getInstance()
+                    currentTime.add(Calendar.MINUTE, 5)
+                    val timePickerDialog = TimePickerDialog(
+                        context,
+                        { _, hourOfDay, minute ->
+                            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                            calendar.set(Calendar.MINUTE, minute)
+
+                            when {
+                                !checkNotificationPermission() -> {
+                                    isReminderError = true
+                                    reminderErrorMessage = "Notification permission required"
+                                }
+                                else -> {
+                                    isReminderError = false
+                                    reminderErrorMessage = ""
+                                    selectedDateTime = calendar.timeInMillis
+                                }
+                            }
+                            showTimePicker = false
+                        },
+                        currentTime.get(Calendar.HOUR_OF_DAY),  // Use the time + 5 minutes
+                        currentTime.get(Calendar.MINUTE),
+                        false // 24 hour format
+                    )
+
+                    LaunchedEffect(Unit) {
+                        timePickerDialog.show()
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
 
                 Button(
                     onClick = {
                         when {
                             title.value.trim().isEmpty() -> {
-                                isError = true
-                                errorMessage = "Title cannot be empty"
+                                isTitleError = true
+                                titleErrorMessage = "Title cannot be empty"
                             }
+
                             else -> {
                                 val task = if (taskId != null && taskId != -1) {
                                     existingTask?.copy(
                                         title = title.value.trim(),
                                         description = description.value.trim(),
-                                        categoryId = selectedCategory.value?.catId ?: categoryId
+                                        categoryId = selectedCategory.value?.catId
+                                            ?: categoryId,
+                                        reminderTime = selectedDateTime
                                     )
                                 } else {
                                     Task(
                                         id = 0,
                                         title = title.value.trim(),
                                         description = description.value.trim(),
-                                        categoryId = selectedCategory.value?.catId ?: categoryId
+                                        categoryId = selectedCategory.value?.catId
+                                            ?: categoryId,
+                                        reminderTime = selectedDateTime
                                     )
                                 }
 
                                 task?.let {
                                     if (taskId != null && taskId != -1) {
-                                        taskViewModel.updateTask(it)
+                                        // Update existing task
+                                        if (selectedDateTime != null) {
+                                            // Update with reminder
+                                            taskViewModel.updateTaskWithReminder(
+                                                it,
+                                                selectedDateTime!!
+                                            )
+                                        } else {
+                                            // Update without reminder
+                                            taskViewModel.updateTask(it)
+                                        }
                                     } else {
-                                        taskViewModel.insertTask(it)
+                                        // Create new task
+                                        if (selectedDateTime != null) {
+                                            // Create with reminder
+                                            taskViewModel.addTaskWithReminder(
+                                                it,
+                                                selectedDateTime!!
+                                            )
+                                        } else {
+                                            // Create without reminder
+                                            taskViewModel.insertTask(it)
+                                        }
                                     }
                                 }
 
@@ -313,30 +473,5 @@ fun NewTask(navController: NavHostController, categoryId: Int, taskId: Int?) {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TopBar(title: String, onBackClick : () -> Unit) {
-    TopAppBar(
-        title = {
-            Text(
-                text = title
-            )
-        },
-        navigationIcon = {
-            Icon(imageVector = Icons.Filled.ArrowBack,
-                contentDescription = "back icon",
-                modifier = Modifier
-                    .padding(8.dp)
-                    .clickable {
-                        onBackClick()
-                    })
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = Color.White,
-            navigationIconContentColor = Color.White
-        )
-    )
-}
 
 

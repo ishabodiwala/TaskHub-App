@@ -1,4 +1,4 @@
-package com.example.taskhub
+package com.example.taskhub.compose
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
@@ -58,8 +58,7 @@ fun MyTopBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = Color.White,
-            navigationIconContentColor = Color.White,
-            actionIconContentColor = Color.White
+            navigationIconContentColor = Color.White
         ),
         modifier = Modifier.shadow(elevation = 4.dp)
     )
