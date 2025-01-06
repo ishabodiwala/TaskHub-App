@@ -357,22 +357,29 @@ fun NewTask(
 
                 if (showTimePicker) {
                     val currentTime = Calendar.getInstance()
+                    val calendarInstance = Calendar.getInstance()
                     currentTime.add(Calendar.MINUTE, 5)
                     val timePickerDialog = TimePickerDialog(
                         context,
                         { _, hourOfDay, minute ->
                             calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
                             calendar.set(Calendar.MINUTE, minute)
+                            if (calendarInstance.time.before(calendar.time)) {
+                                isReminderError = true
+                                reminderErrorMessage = "Please select a future time"
+                                selectedDateTime = null
+                            } else {
+                                when {
+                                    !checkNotificationPermission() -> {
+                                        isReminderError = true
+                                        reminderErrorMessage = "Notification permission required"
+                                    }
 
-                            when {
-                                !checkNotificationPermission() -> {
-                                    isReminderError = true
-                                    reminderErrorMessage = "Notification permission required"
-                                }
-                                else -> {
-                                    isReminderError = false
-                                    reminderErrorMessage = ""
-                                    selectedDateTime = calendar.timeInMillis
+                                    else -> {
+                                        isReminderError = false
+                                        reminderErrorMessage = ""
+                                        selectedDateTime = calendar.timeInMillis
+                                    }
                                 }
                             }
                             showTimePicker = false
